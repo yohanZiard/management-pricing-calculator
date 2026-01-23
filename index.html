@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Management Pricing Calculator</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+body { background:#f9fafb; font-family:sans-serif; }
+.custom-scrollbar::-webkit-scrollbar { width:6px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
+</style>
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+/* ================= CONFIG ================= */
+const PASSCODE = "1234";
+const VAT_RATE = 18;
+
+/* ================= DATABASE ================= */
+/* USE YOUR CLEAN DATABASE HERE */
+const PRODUCT_DATABASE = [
+ { id: '10006BQ5', name: 'SPARKLE GIRLZ-DOLLS-10.5"-Fairy Cone', brand: 'Zuru', price: 2990, cost: 1025 },
+{ id: '10010', name: 'SPARKLE GIRLZ DOLLS 10.5" Princess Cone', brand: 'Zuru', price: 2990, cost: 875.15 },
+{ id: '10092', name: 'SPARKLE GIRLZ-DOLLS Unicorn Princess Cone', brand: 'Zuru', price: 2990, cost: 852.62 },
+{ id: '11307uq1', name: 'GLOVE A BUBBLE PAW PATROL', brand: 'Zuru', price: 590, cost: 1198.54 },
+{ id: '22480', name: 'Care Bears Basic  (Glitter) Asst', brand: 'CARE BEAR', price: 3990, cost: 1786.2 },
+{ id: '22570', name: 'CARE BEARS BASIC ASSORTMENT', brand: 'CARE BEAR', price: 3590, cost: 1603 },
+{ id: '22921', name: 'Care Bears Medium Plush Asst', brand: 'CARE BEAR', price: 6990, cost: 2793.8 },
+{ id: '36621', name: 'X-Shot-HYPER GEL-S1, M Blaster 10K Gellets', brand: 'Zuru', price: 12990, cost: 6708 },
+{ id: '36622', name: 'X-Shot-HYPER GEL-S1, Clutch Blaster 5K Gellets', brand: 'Zuru', price: 8990, cost: 2562.8 },
+{ id: '36625', name: 'X-SHOT-HYPER GEL-Gellet 20K Refill', brand: 'Zuru', price: 3490, cost: 1234.1 },
+{ id: '40757', name: 'Gel Blaster Offer ', brand: 'Zuru', price: 19990, cost: 9271 },
+{ id: '40764', name: 'Fruit Jelly Slime', brand: 'FUNDOO', price: 790, cost: 260.42 },
+{ id: '40771', name: 'Sparkling Jello Slime', brand: 'FUNDOO', price: 590, cost: 198.3 },
+{ id: '40788', name: 'KAWAI PASTEL GEL SLIME', brand: 'FUNDOO', price: 890, cost: 300.46 },
+{ id: '6701', name: 'METAL MACHINES PLAYSET S1 ROAD RAMPAGE', brand: 'Zuru', price: 2480, cost: 870.26 },
+{ id: '6702', name: 'METAL MACHINES T REX', brand: 'Zuru', price: 3980, cost: 1477.26 },
+{ id: '7156', name: 'ROBO ALIVE-DINO FOSSIL FIND-SERIES1 Surprise', brand: 'Zuru', price: 3493, cost: 2187.78 },
+{ id: '74107', name: 'SMASHERS-JURASSIC LIGHTUP DINO-SERIES 1 Mini Jurassic Light-Up Dino', brand: 'Zuru', price: 5990, cost: 2288 },
+{ id: '74108', name: 'SMASHERS-JURASSIC-SERIES 1 Mega Jurassic Light-Up Dino', brand: 'Zuru', price: 13990, cost: 4919.2 },
+{ id: '74116', name: 'SMASHERS-DINO DIG-S1 Small', brand: 'Zuru', price: 6750, cost: 2209.07 },
+{ id: '74132', name: 'SMASHERS-JURASSIC- S1 NANO EGG', brand: 'Zuru', price: 2250, cost: 813.87 },
+{ id: '74141', name: 'SMASHERS-DINOS VS ALIENS- S1-ROCKET', brand: 'Zuru', price: 9750, cost: 3289.38 },
+{ id: '7448', name: 'ZURU SMASHERS S2 LARGE', brand: 'Zuru', price: 5990, cost: 1 },
+{ id: '7455', name: 'SMASHERS ICE AGE LARGE', brand: 'Zuru', price: 5990, cost: 1198.54 },
+{ id: '7456SQ1', name: 'SMASHERS ICE AGE MINI', brand: 'Zuru', price: 2990, cost: 1198.54 },
+{ id: '7472TQ1', name: 'ZURU SMASHERS-SMALL VOLCANO-SERIES 4  Lava Slime Surprise, Asst', brand: 'Zuru', price: 1225, cost: 1198.54 },
+{ id: '7473SQ1', name: 'ZURU SMASHERS-MINI EGG-SERIES 4  Mini Light-Up Dino, Asst', brand: 'Zuru', price: 2990, cost: 1198.54 },
+{ id: '7474', name: 'ZURU SMASHERS-EPIC EGG-SERIES 4 Mega Light-Up Dino, Asst', brand: 'Zuru', price: 6990, cost: 233.23 },
+{ id: '7486', name: '7486 SMASHERS MINI EGG-SERIES 1 Dino Island', brand: 'Zuru', price: 5990, cost: 2414.32 },
+{ id: '7487', name: '7487 Smashers Epic Egg Dino Island S5', brand: 'Zuru', price: 10990, cost: 4281.27 },
+{ id: '7495', name: '7495 SMASHERS NANO EGG-SERIES 1 Dino Island', brand: 'Zuru', price: 3290, cost: 1328.95 },
+{ id: '7725sq1', name: 'MINI BRANDS S1', brand: 'Zuru', price: 1790, cost: 1747.94 },
+{ id: '77355', name: '5 SURPRISE-MEGA GROSS Minis S1', brand: 'Zuru', price: 3990, cost: 1427.6 },
+{ id: '77435', name: '77435 Mini Brands S3', brand: 'Zuru', price: 3990, cost: 1542.49 },
+{ id: '77555', name: 'MINI BRANDS-HOME S1', brand: 'Zuru', price: 3990, cost: 1331.15 },
+{ id: '77559', name: 'MINI BRANDS -BOTANICAL GARDEN S1', brand: 'Zuru', price: 2990, cost: 898.18 },
+{ id: '77564', name: '5 SURPRISE FASHION FAIRIES S1', brand: 'Zuru', price: 3790, cost: 1344.97 },
+{ id: '77624', name: 'MINI BRANDS- KAWAII S1', brand: 'Zuru', price: 2950, cost: 1043.26 },
+{ id: '77625', name: '5 SURPRISE-MAKE-A-RACER-S1', brand: 'Zuru', price: 1700, cost: 901.07 },
+{ id: '77634', name: 'MINI BRANDS-RETRO GROCERY S1', brand: 'Zuru', price: 3990, cost: 1234.43 },
+{ id: '77655', name: '5 SURPRISE-GABBYS DOLLHOUSE S1', brand: 'Zuru', price: 2750, cost: 997.96 },
+{ id: '77686', name: 'MINI BRANDS-BOOK S2', brand: 'Zuru', price: 3990, cost: 1370.98 },
+{ id: '83130GQ1', name: 'ZURU MAX BUILD MORE-CONSTRUCTION BRICKS-EGG CAPSULE SERIES 1 Egg Capsule(40+ Bricks),16pcs/Gravity PDQ', brand: 'Zuru', price: 990, cost: 459.65 },
+{ id: '83183', name: 'MAX PREMIUM-S1-GARDEN POT PLANTS', brand: 'Zuru', price: 3250, cost: 1316.38 },
+{ id: '83184', name: 'MAX PREMIUM-S1-GARDEN LONG FLOWERS (2 FLOWERS)', brand: 'Zuru', price: 3250, cost: 1424.27 },
+{ id: '83185', name: 'MAX PREMIUM-S1-RETRO', brand: 'Zuru', price: 3250, cost: 1388.02 },
+{ id: '83186', name: 'MAX PREMIUM-S1-SNACK', brand: 'Zuru', price: 3250, cost: 1244.74 },
+{ id: '83189', name: 'MAX PREMIUM-S1-ROSE COLLECTION', brand: 'Zuru', price: 3250, cost: 1285.04 },
+{ id: '83190', name: 'MAX PREMIUM-S1-GARDEN LONG FLOWERS', brand: 'Zuru', price: 2700, cost: 850.72 },
+{ id: '8345', name: 'MAX BUILD MORE BASE PLATE (10*10)', brand: 'Zuru', price: 990, cost: 279.48 },
+{ id: '8346', name: 'MAX BUILD MORE (253 BRICKS)', brand: 'Zuru', price: 2980, cost: 1010.61 },
+{ id: '8603', name: 'FUN FORM', brand: 'Zuru', price: 490, cost: 1 },
+{ id: '86104', name: 'Zuru Slime 2023', brand: 'Zuru', price: 690, cost: 252.12 },
+{ id: '8627', name: 'COTTON CANDY SERIES 1', brand: 'Zuru', price: 990, cost: 374.3 },
+{ id: '8629', name: 'OOSH-POTIONS S1 ', brand: 'Zuru', price: 4490, cost: 1628 },
+{ id: '8667', name: '8667 Oosh Fun form S3 Crackle', brand: 'Zuru', price: 790, cost: 271.69 },
+{ id: '8699', name: '8699 OOSH-COTTON CANDY-MEDIUM FOIL BAG Cotton Candy ', brand: 'Zuru', price: 1790, cost: 662.34 },
+{ id: '88212', name: 'Air Dry Dough Assorted', brand: 'CINNAMELON', price: 690, cost: 346.5 },
+{ id: '88213', name: 'Cra Z Doh 5 pack ', brand: 'CINNAMELON', price: 990, cost: 1 },
+{ id: '88215', name: 'Cinnamelon Dough Dino Adventure', brand: 'CINNAMELON', price: 2790, cost: 1093.08 },
+{ id: '88216', name: 'Cinnamelon Dough Sea Animals', brand: 'CINNAMELON', price: 2790, cost: 1093.08 },
+{ id: '88217', name: 'Cinnamelon Dough Shapes and Tools', brand: 'CINNAMELON', price: 2790, cost: 1093.08 },
+{ id: '88218', name: 'Cinnamelon Dough Alphabet', brand: 'CINNAMELON', price: 3490, cost: 1396 },
+{ id: '88219', name: 'Cinnamelon Butter Slime', brand: 'CINNAMELON', price: 2690, cost: 930 },
+{ id: '88223', name: 'Baby Toy Rattle', brand: 'CINNAMELON', price: 164, cost: 1 },
+{ id: '9201', name: 'RAINBOCORNS S1', brand: 'Zuru', price: 5980, cost: 1 },
+{ id: '9202', name: 'ZURU RAINBOCORNS S2', brand: 'Zuru', price: 5980, cost: 1605.99 },
+{ id: '92104', name: 'RAINBOCORN - KITTYCORN  - S9', brand: 'Zuru', price: 3990, cost: 1510.79 },
+{ id: '92105', name: 'RAINBOCORN - ADOPT-A-CORN  S1', brand: 'Zuru', price: 7990, cost: 2491.88 },
+{ id: '92111', name: 'RAINBOCORNS-EGGZANIA S1 MINI-SHRINK', brand: 'Zuru', price: 1950, cost: 796.99 },
+{ id: '92119', name: 'RAINBOCORNS-EGGZANIA-S1 FROZEN MANIA', brand: 'Zuru', price: 8490, cost: 2829.16 },
+{ id: '9212', name: 'RAINBOCORNS-PLUSH SWEET SHAKE SURPRISE S1', brand: 'Zuru', price: 7990, cost: 3453.92 },
+{ id: '92120', name: 'RAINBOCORNS-SPARKLE HEART SURPRISE-S1-AXOLOTLCORN', brand: 'Zuru', price: 4490, cost: 1651.96 },
+{ id: '9214sq1', name: 'SPARKLE HEART SURPRISE S2', brand: 'Zuru', price: 2990, cost: 691.63 },
+{ id: '9215', name: 'RAINBOCORNS WILD S3', brand: 'Zuru', price: 5990, cost: 1 },
+{ id: '9237sq1', name: 'PUPPYCORN SURPRISE S1', brand: 'Zuru', price: 3990, cost: 1455.75 },
+{ id: '9238', name: 'ZURU RAINBOCORNS-SEQUIN SURPRISE-SERIES 4 FairycornSurprise, Asst', brand: 'Zuru', price: 6590, cost: 769.09 },
+{ id: '9251', name: ' Puppycorn SurpriseSeries 2', brand: 'Zuru', price: 2793, cost: 1574.35 },
+{ id: '9259', name: '9259 RAINBOCORNS-SPARKLE HEART SURPRISE-SERIES 5 Kittycorn', brand: 'Zuru', price: 5590, cost: 2196.39 },
+{ id: '9261', name: '9261 RAINBOCORNS-SEQUIN SURPRISE-SERIES 5 Puppycorn Rescue', brand: 'Zuru', price: 13990, cost: 5854.2 },
+{ id: '9269', name: '9269 Rainbocorns Sparkle Heart Suppeise S6 Puppycorn Bow Surprise', brand: 'Zuru', price: 5690, cost: 2177.88 },
+{ id: '9279', name: 'RAINBOCORNS-KITTYCORN SURPRISE-SERIES 7', brand: 'Zuru', price: 4990, cost: 2323.2 },
+{ id: '9280', name: 'RAINBOCORNS-BUNNYCORN SURPRISE-SERIES 2 Mini', brand: 'Zuru', price: 2990, cost: 1878.8 },
+{ id: '9281', name: 'RAINBOCORNS-FAIRYCORN PRINCESS-SERIES 6', brand: 'Zuru', price: 13990, cost: 4897.2 },
+{ id: '9283', name: 'RAINBOCORNS- MERMAIDCORN S7', brand: 'Zuru', price: 13990, cost: 4785.9 },
+{ id: '9296', name: 'RAINBOCORNS EGGZANIA MINI -S1', brand: 'Zuru', price: 8490, cost: 2609.14 },
+{ id: '9297', name: 'RAINBOCORNS MONSTERCORN-S1', brand: 'Zuru', price: 11990, cost: 3594.23 },
+{ id: '9298', name: 'RAINBOCORNS- PUPPYCORN S8 SCENT ', brand: 'Zuru', price: 4990, cost: 1309.01 },
+{ id: '9523', name: 'ZURU PETS ALIVE-PET SHOP SURPRISE-SERIES 1', brand: 'Zuru', price: 5990, cost: 2109.77 },
+{ id: '9532', name: '9532 Pets Alive Pet Shop Surprise S2', brand: 'Zuru', price: 8590, cost: 3286.55 },
+{ id: '9540', name: 'PETS ALIVE-PET SHOP SURPRISE-SERIES 3 INTERACTIVE', brand: 'Zuru', price: 8590, cost: 3300 },
+{ id: '9541', name: 'Pets Alive Smitten Kittens S1', brand: 'Zuru', price: 7990, cost: 3225 },
+{ id: '9601', name: 'COCO CONES-ORIGINAL S1 PLUSHCONE', brand: 'Zuru', price: 2990, cost: 922.36 },
+{ id: '9631', name: 'COCO SURPRISE-CONESRAINBOW', brand: 'Zuru', price: 2990, cost: 1092.2 },
+{ id: '9638', name: 'Coco Cones-SWEET S1-CONE PLUSHCONE', brand: 'Zuru', price: 2990, cost: 931.32 },
+{ id: '9639', name: 'Coco Cones-LOVE-S1-CONE PLUSHCONE', brand: 'Zuru', price: 2990, cost: 931.32 },
+{ id: '9640', name: 'Coco Cones EASTER -S1 PLUSHCONE', brand: 'Zuru', price: 2990, cost: 931.32 },
+{ id: '9701UQ1', name: 'ITTY BITTY PRETTYS SMALL S1', brand: 'Zuru', price: 2990, cost: 881.26 },
+{ id: '9703', name: 'ITTY BITTY PRETTYS PLAY SET LARGE', brand: 'Zuru', price: 6250, cost: 2191.42 },
+{ id: '9704uq1', name: 'TEA PARTY MINI S2', brand: 'Zuru', price: 2990, cost: 1365.15 },
+{ id: '9710', name: 'ZURU ITTY BITTY PRETTYS-ANGEL HIGH-SERIES S001', brand: 'Zuru', price: 2443, cost: 1 },
+{ id: '9711', name: 'ZURU ITTY BITTY PRETTYS-TEA PARTY SURPRISE-SERIES 2', brand: 'Zuru', price: 7490, cost: 1 },
+{ id: 'AC03', name: 'AC03', brand: 'IMAGIMAKE', price: 5990, cost: 2379.82 },
+{ id: 'CBX005', name: 'Marvel  Cosbi Bobble-Head Collection', brand: 'HOT TOYS', price: 5990, cost: 2427.4 },
+{ id: 'CBX011', name: 'Spider-Man: No Way Home -Cosbi Bobble-Head Collection', brand: 'HOT TOYS', price: 5990, cost: 2793.8 },
+{ id: 'CBX057', name: 'Iron Man  Cosbi Bobble-Head Collection', brand: 'HOT TOYS', price: 5990, cost: 2427.4 },
+{ id: 'CBX091', name: 'Avengers Cosbi Bobble-Head Collection', brand: 'HOT TOYS', price: 5990, cost: 2427.4 },
+{ id: 'CBX119', name: 'Guardians Of The Galaxy Vol. 3 Cosbi Collection', brand: 'HOT TOYS', price: 5990, cost: 2793.8 },
+{ id: 'CBX131', name: 'Frozen Cosbi Collection', brand: 'HOT TOYS', price: 5990, cost: 2427.4 },
+{ id: 'CM02', name: 'Clay Murals - Jungle', brand: 'IMAGIMAKE', price: 6490, cost: 2099.24 },
+{ id: 'CM03', name: 'Clay Murals - Unicorn', brand: 'IMAGIMAKE', price: 6490, cost: 2099.24 },
+{ id: 'CM04', name: 'Clay Murals - Dino', brand: 'IMAGIMAKE', price: 2990, cost: 968.88 },
+{ id: 'CM05', name: 'Clay Murals - Candyland', brand: 'IMAGIMAKE', price: 2990, cost: 968.88 },
+{ id: 'CM06', name: 'CM06', brand: 'IMAGIMAKE', price: 2490, cost: 883.36 },
+{ id: 'CM07', name: 'CM07', brand: 'IMAGIMAKE', price: 2490, cost: 883.36 },
+{ id: 'CM08', name: 'CM08', brand: 'IMAGIMAKE', price: 2490, cost: 883.36 },
+{ id: 'FM03', name: 'Window Art - Space Adventure', brand: 'IMAGIMAKE', price: 5490, cost: 1990.44 },
+{ id: 'FM04', name: 'Window Art - Yummy Treats', brand: 'IMAGIMAKE', price: 3290, cost: 1210.68 },
+{ id: 'FM05', name: 'Window Art - Dino Pals', brand: 'IMAGIMAKE', price: 3490, cost: 1210.68 },
+{ id: 'FM06', name: 'Window Art - Aqua World', brand: 'IMAGIMAKE', price: 3490, cost: 1210.68 },
+{ id: 'FM07', name: 'Window Art - Butterfly', brand: 'IMAGIMAKE', price: 1590, cost: 559.17 },
+{ id: 'FM08', name: 'Window Art - Rocket', brand: 'IMAGIMAKE', price: 1590, cost: 559.17 },
+{ id: 'FM09', name: 'Window Art - Ice Cream', brand: 'IMAGIMAKE', price: 1590, cost: 559.17 },
+{ id: 'FM24', name: 'Window Art - Wonderland', brand: 'IMAGIMAKE', price: 5490, cost: 1990.44 },
+{ id: 'FM25', name: 'Window Art - Princess', brand: 'IMAGIMAKE', price: 2990, cost: 952.73 },
+{ id: 'FM26', name: 'Window Art - Unicorn', brand: 'IMAGIMAKE', price: 1390, cost: 440.03 },
+{ id: 'IM03', name: '3 in 1 Awesome Craft Kit', brand: 'IMAGIMAKE', price: 4990, cost: 1776.28 },
+{ id: 'IM04', name: '5 in 1 Awesome Craft Kit', brand: 'IMAGIMAKE', price: 7990, cost: 2906.64 },
+{ id: 'IM06', name: 'Fabulous Craft Kit', brand: 'IMAGIMAKE', price: 10990, cost: 3714.05 },
+{ id: 'KD01', name: 'KD01 Alpha Puzzle', brand: 'IMAGIMAKE', price: 7990, cost: 2624.05 },
+{ id: 'KD05', name: 'KD05 Make with Shapes - Vehicles', brand: 'IMAGIMAKE', price: 3290, cost: 1069.81 },
+{ id: 'KD06', name: 'KD06 Junior Abacus', brand: 'IMAGIMAKE', price: 4990, cost: 1655.17 },
+{ id: 'KD09', name: 'KD09 Make with Shapes - Animal', brand: 'IMAGIMAKE', price: 3290, cost: 1069.81 },
+{ id: 'KD10', name: 'KD10 Make with Shapes - Food', brand: 'IMAGIMAKE', price: 3290, cost: 1069.81 },
+{ id: 'KD14', name: 'KD14 Kiddi-do All-In-1 Puzzle', brand: 'IMAGIMAKE', price: 4290, cost: 1412.95 },
+{ id: 'KD15', name: 'KD15 Learn to Spell', brand: 'IMAGIMAKE', price: 6290, cost: 2099.24 },
+{ id: 'M003', name: 'DIYScience® Mint Chocolate Butter Slime Kit', brand: 'FUNDOO', price: 2790, cost: 971.67 },
+{ id: 'M008', name: 'DIYScience® Watermelon Jelly Slime Kit', brand: 'FUNDOO', price: 2790, cost: 971.67 },
+{ id: 'M010', name: 'DIYScience® Aqua Pearl Slime Kit', brand: 'FUNDOO', price: 2790, cost: 971.67 },
+{ id: 'M011', name: 'DIYScience® Golden Jewel Slime Kit', brand: 'FUNDOO', price: 2790, cost: 971.67 },
+{ id: 'M012', name: 'DIYScience® Unicorn Glitter Slime Kit', brand: 'FUNDOO', price: 2490, cost: 849.03 },
+{ id: 'M014', name: 'DIYScience® Blue Galaxy Slime Kit', brand: 'FUNDOO', price: 2490, cost: 849.03 },
+{ id: 'M017', name: 'DIYScience® Sparkling Strawberry Jam Slime Kit', brand: 'FUNDOO', price: 2490, cost: 849.03 },
+{ id: 'M018', name: 'Mint Lemonade 2-in-1 Slime Kit - DIYScience', brand: 'FUNDOO', price: 4490, cost: 1698.06 },
+{ id: 'M021', name: 'DIYScience® Strawberry Cheesecake 2-in-1 Slime Kit', brand: 'FUNDOO', price: 4490, cost: 1698.06 },
+{ id: 'MP10', name: 'Mapology: World', brand: 'IMAGIMAKE', price: 2990, cost: 1150.55 },
+{ id: 'MP14', name: 'Mapology World with Flags & Capitals', brand: 'IMAGIMAKE', price: 5990, cost: 2220.35 },
+{ id: 'MP19', name: 'Mapology World AR', brand: 'IMAGIMAKE', price: 8990, cost: 3249.79 },
+{ id: 'MP32', name: 'Mapology Solar System', brand: 'IMAGIMAKE', price: 4990, cost: 1978.13 },
+{ id: 'MP47', name: 'Mapology Physical Map - World', brand: 'IMAGIMAKE', price: 10990, cost: 3350.72 },
+{ id: 'MP49', name: 'Mapology Dino Quest - T. Rex, Mosasaurus and Ankylosaurus', brand: 'IMAGIMAKE', price: 5490, cost: 1949.4 },
+{ id: 'MP50', name: 'Mapology Dino Quest - Stegosaurus, Triceratops, Pachycephalosaurus', brand: 'IMAGIMAKE', price: 5490, cost: 1949.4 },
+{ id: 'MP51', name: 'Mapology Dino Quest - Brachiosaurus, Pteranodon, Velociraptor', brand: 'IMAGIMAKE', price: 5490, cost: 1949.4 },
+{ id: 'MP52', name: 'Mapology - Monuments of the World', brand: 'IMAGIMAKE', price: 6990, cost: 2099.24 },
+{ id: 'MP61', name: 'MP61', brand: 'IMAGIMAKE', price: 6490, cost: 2428.23 },
+{ id: 'QK06', name: 'World of Paper Quilling', brand: 'IMAGIMAKE', price: 14990, cost: 5090.66 },
+{ id: 'SA02', name: 'Stamp Art - Animal Kingdom', brand: 'IMAGIMAKE', price: 4990, cost: 1534.06 },
+{ id: 'SA03', name: 'Stamp Art - Ocean', brand: 'IMAGIMAKE', price: 1990, cost: 649.96 },
+{ id: 'SA04', name: 'Stamp Art - Food', brand: 'IMAGIMAKE', price: 1990, cost: 649.96 },
+{ id: 'SA05', name: 'Stamp Art - Smiley', brand: 'IMAGIMAKE', price: 1990, cost: 649.96 },
+{ id: 'SA06', name: 'Stamp Art - Jungle', brand: 'IMAGIMAKE', price: 1990, cost: 649.96 },
+{ id: 'SA15', name: 'Stamp Art - Garden', brand: 'IMAGIMAKE', price: 3990, cost: 1251.47 },
+{ id: 'SA16', name: 'Stamp Art - Spring', brand: 'IMAGIMAKE', price: 4790, cost: 1574.43 },
+{ id: 'SS01', name: 'Spyrosity-  Explore', brand: 'IMAGIMAKE', price: 8990, cost: 2906.64 },
+{ id: 'SS13', name: 'Spyrosity – Pet Pals', brand: 'IMAGIMAKE', price: 1490, cost: 538.65 },
+{ id: 'SS14', name: 'Spyrosity – Yummy Treats', brand: 'IMAGIMAKE', price: 1490, cost: 538.65 },
+{ id: 'SS15', name: 'Spyrosity – Monsters', brand: 'IMAGIMAKE', price: 1490, cost: 538.65 },
+{ id: 'SS16', name: 'Spyrosity Princess', brand: 'IMAGIMAKE', price: 2590, cost: 847.77 },
+{ id: 'SS17', name: 'Spyrosity Space', brand: 'IMAGIMAKE', price: 2590, cost: 847.77 },
+{ id: 'SS18', name: 'Spyrosity Ocean', brand: 'IMAGIMAKE', price: 2590, cost: 847.77 },
+{ id: 'SS19', name: 'Spyrosity- Super Quiller', brand: 'IMAGIMAKE', price: 4990, cost: 1513.88 },
+{ id: 'UD472937', name: 'ACTION SOFT TOY Donald', brand: 'URDU', price: 7990, cost: 3114.4 },
+{ id: 'UD475730', name: 'ACTION SOFTTOY micky and friends', brand: 'URDU', price: 7990, cost: 3114.4 },
+{ id: 'UD477185', name: 'WORLDS BEYOND Disney', brand: 'URDU', price: 6990, cost: 3114.4 },
+{ id: 'WA01', name: 'Window Art - Rocket', brand: 'IMAGIMAKE', price: 5890, cost: 1937.76 },
+{ id: 'WA02', name: 'Window Art - Princess', brand: 'IMAGIMAKE', price: 5890, cost: 1937.76 },
+{ id: 'WA03', name: 'WA03', brand: 'IMAGIMAKE', price: 4990, cost: 1936.13 },
+{ id: 'WA04', name: 'WA04', brand: 'IMAGIMAKE', price: 4990, cost: 1936.13 }
+
+];
+
+/* ================= APP ================= */
+function App() {
+
+  /* ---------- PASSCODE ---------- */
+  const [unlocked, setUnlocked] = useState(
+    sessionStorage.getItem("mgmtUnlocked") === "true"
+  );
+  const [passInput, setPassInput] = useState("");
+
+  if (!unlocked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-6 rounded shadow w-80">
+          <h2 className="text-lg font-bold mb-4 text-center">
+            Management Access
+          </h2>
+          <input
+            type="password"
+            inputMode="numeric"
+            className="w-full p-3 border rounded mb-4"
+            placeholder="Enter passcode"
+            value={passInput}
+            onChange={e => setPassInput(e.target.value)}
+          />
+          <button
+            onClick={() => {
+              if (passInput === PASSCODE) {
+                sessionStorage.setItem("mgmtUnlocked","true");
+                setUnlocked(true);
+              } else {
+                alert("Incorrect passcode");
+              }
+            }}
+            className="w-full bg-blue-700 text-white py-2 rounded font-bold"
+          >
+            Unlock
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- STATE ---------- */
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [vatType, setVatType] = useState("vat");
+  const [mode, setMode] = useState("rate");
+  const [marginRate, setMarginRate] = useState("");
+  const [targetNet, setTargetNet] = useState("");
+
+  /* ---------- FILTER ---------- */
+  const filtered = useMemo(() => {
+    if (searchTerm.length < 2) return [];
+    const q = searchTerm.toLowerCase();
+    return PRODUCT_DATABASE.filter(p =>
+      p.id.toLowerCase().includes(q) ||
+      p.name.toLowerCase().includes(q)
+    );
+  }, [searchTerm]);
+
+  /* ---------- CALCULATIONS ---------- */
+  const results = useMemo(() => {
+    if (!selectedItem) return null;
+
+    const mrp = selectedItem.price;
+    const cost = selectedItem.cost;
+
+    let netSelling;
+    let exVat;
+
+    if (mode === "rate") {
+      if (vatType === "vat") {
+        exVat = mrp / (1 + VAT_RATE / 100);
+        netSelling = exVat * (1 - (Number(marginRate) || 0) / 100);
+      } else {
+        netSelling = mrp * (1 - (Number(marginRate) || 0) / 100);
+        exVat = netSelling * (100 / 118);
+      }
+    } else {
+      netSelling = Number(targetNet) || 0;
+      exVat = vatType === "vat"
+        ? netSelling
+        : netSelling * (100 / 118);
+    }
+
+    const vatPayable =
+      vatType === "nonvat"
+        ? netSelling * (18 / 118)
+        : 0;
+
+    const netCost =
+      vatType === "nonvat"
+        ? cost + vatPayable
+        : cost;
+
+    const netMargin = netSelling - netCost;
+    const netMarginRate = netSelling > 0 ? (netMargin / netSelling) * 100 : 0;
+
+    const discount = ((mrp - netSelling) / mrp) * 100;
+
+    return {
+      mrp,
+      netSelling,
+      exVat,
+      vatPayable,
+      netCost,
+      netMargin,
+      netMarginRate,
+      discount
+    };
+  }, [selectedItem, vatType, mode, marginRate, targetNet]);
+
+  /* ---------- UI ---------- */
+  return (
+    <div className="max-w-xl mx-auto p-4">
+
+      <h1 className="text-xl font-bold mb-4">
+        Management Pricing Calculator
+      </h1>
+
+      <input
+        className="w-full p-3 border rounded mb-2"
+        placeholder="Search item code or name"
+        value={searchTerm}
+        onChange={e => setSearchTerm(e.target.value)}
+      />
+
+      {filtered.length > 0 && (
+        <div className="border rounded max-h-56 overflow-y-auto custom-scrollbar mb-4">
+          {filtered.map(p => (
+            <div
+              key={p.id}
+              className="p-3 hover:bg-blue-50 cursor-pointer flex justify-between"
+              onClick={() => {
+                setSelectedItem(p);
+                setSearchTerm("");
+              }}
+            >
+              <div>
+                <div className="font-bold">{p.name}</div>
+                <div className="text-xs text-gray-500">
+                  {p.id} • {p.brand}
+                </div>
+              </div>
+              <div className="font-bold">LKR {p.price}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex mb-4">
+        <button className={`flex-1 p-2 ${vatType==="vat"?"bg-green-600 text-white":"bg-gray-200"}`}
+          onClick={()=>setVatType("vat")}>VAT Customer</button>
+        <button className={`flex-1 p-2 ${vatType==="nonvat"?"bg-green-600 text-white":"bg-gray-200"}`}
+          onClick={()=>setVatType("nonvat")}>NON VAT Customer</button>
+      </div>
+
+      <div className="flex mb-4">
+        <button className={`flex-1 p-2 ${mode==="rate"?"bg-blue-600 text-white":"bg-gray-200"}`}
+          onClick={()=>setMode("rate")}>Margin %</button>
+        <button className={`flex-1 p-2 ${mode==="amount"?"bg-blue-600 text-white":"bg-gray-200"}`}
+          onClick={()=>setMode("amount")}>Target Price</button>
+      </div>
+
+      {mode === "rate" ? (
+        <input className="w-full p-3 border rounded mb-3"
+          placeholder="Margin %"
+          value={marginRate}
+          onChange={e=>setMarginRate(e.target.value)} />
+      ) : (
+        <input className="w-full p-3 border rounded mb-3"
+          placeholder="Target Net Selling Price"
+          value={targetNet}
+          onChange={e=>setTargetNet(e.target.value)} />
+      )}
+
+      {results && (
+        <>
+          <div className="bg-blue-900 text-white p-4 rounded mb-4">
+            <div className="mb-2 text-sm text-blue-200">
+              {selectedItem.id} – {selectedItem.name} ({selectedItem.brand})
+            </div>
+
+            <div className="text-3xl font-bold mb-2">
+              NET SELLING PRICE: LKR {results.netSelling.toFixed(2)}
+            </div>
+
+            <div className="text-sm">MRP: {results.mrp.toFixed(2)}</div>
+            <div className="text-sm">EX VAT: {results.exVat.toFixed(2)}</div>
+            <div className="text-sm text-red-300">
+              TOTAL DISCOUNT RATE: {results.discount.toFixed(2)}%
+            </div>
+          </div>
+
+          <div className="bg-gray-900 text-white p-4 rounded">
+            <h3 className="font-bold mb-2">Management Metrics</h3>
+            <div className="text-sm">COST: {selectedItem.cost.toFixed(2)}</div>
+            {vatType==="nonvat" && (
+              <div className="text-sm">
+                VAT PAYABLE (by us): {results.vatPayable.toFixed(2)}
+              </div>
+            )}
+            <div className="text-sm">
+              NET COST: {results.netCost.toFixed(2)}
+            </div>
+            <div className="text-sm">
+              NET MARGIN VALUE: {results.netMargin.toFixed(2)}
+            </div>
+            <div className="text-sm">
+              NET MARGIN RATE: {results.netMarginRate.toFixed(2)}%
+            </div>
+          </div>
+        </>
+      )}
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
