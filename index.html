@@ -23,14 +23,12 @@ body { background:#f9fafb; font-family:sans-serif; }
 <script type="text/babel">
 const { useState, useMemo } = React;
 
-/* ================= CONFIG ================= */
 const PASSCODE = "1234";
 const VAT_RATE = 18;
 
-/* ================= DATABASE ================= */
-/* USE YOUR CLEAN DATABASE HERE */
+/* SAMPLE DB – replace with full list */
 const PRODUCT_DATABASE = [
- { id: '10006BQ5', name: 'SPARKLE GIRLZ-DOLLS-10.5"-Fairy Cone', brand: 'Zuru', price: 2990, cost: 1025 },
+{ id: '10006BQ5', name: 'SPARKLE GIRLZ-DOLLS-10.5"-Fairy Cone', brand: 'Zuru', price: 2990, cost: 1025 },
 { id: '10010', name: 'SPARKLE GIRLZ DOLLS 10.5" Princess Cone', brand: 'Zuru', price: 2990, cost: 875.15 },
 { id: '10092', name: 'SPARKLE GIRLZ-DOLLS Unicorn Princess Cone', brand: 'Zuru', price: 2990, cost: 852.62 },
 { id: '11307uq1', name: 'GLOVE A BUBBLE PAW PATROL', brand: 'Zuru', price: 590, cost: 1198.54 },
@@ -211,10 +209,8 @@ const PRODUCT_DATABASE = [
 
 ];
 
-/* ================= APP ================= */
 function App() {
 
-  /* ---------- PASSCODE ---------- */
   const [unlocked, setUnlocked] = useState(
     sessionStorage.getItem("mgmtUnlocked") === "true"
   );
@@ -224,27 +220,22 @@ function App() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="bg-white p-6 rounded shadow w-80">
-          <h2 className="text-lg font-bold mb-4 text-center">
-            Management Access
-          </h2>
+          <h2 className="text-lg font-bold mb-4 text-center">Management Access</h2>
           <input
             type="password"
-            inputMode="numeric"
             className="w-full p-3 border rounded mb-4"
             placeholder="Enter passcode"
             value={passInput}
-            onChange={e => setPassInput(e.target.value)}
+            onChange={e=>setPassInput(e.target.value)}
           />
           <button
-            onClick={() => {
-              if (passInput === PASSCODE) {
+            className="w-full bg-blue-700 text-white py-2 rounded font-bold"
+            onClick={()=>{
+              if(passInput===PASSCODE){
                 sessionStorage.setItem("mgmtUnlocked","true");
                 setUnlocked(true);
-              } else {
-                alert("Incorrect passcode");
-              }
+              } else alert("Incorrect passcode");
             }}
-            className="w-full bg-blue-700 text-white py-2 rounded font-bold"
           >
             Unlock
           </button>
@@ -253,101 +244,82 @@ function App() {
     );
   }
 
-  /* ---------- STATE ---------- */
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [vatType, setVatType] = useState("vat");
-  const [mode, setMode] = useState("rate");
-  const [marginRate, setMarginRate] = useState("");
-  const [targetNet, setTargetNet] = useState("");
+  const [searchTerm,setSearchTerm] = useState("");
+  const [selectedItem,setSelectedItem] = useState(null);
+  const [vatType,setVatType] = useState("vat");
+  const [mode,setMode] = useState("rate");
+  const [marginRate,setMarginRate] = useState("");
+  const [targetNet,setTargetNet] = useState("");
 
-  /* ---------- FILTER ---------- */
-  const filtered = useMemo(() => {
-    if (searchTerm.length < 2) return [];
+  const filtered = useMemo(()=>{
+    if(searchTerm.length < 2) return [];
     const q = searchTerm.toLowerCase();
     return PRODUCT_DATABASE.filter(p =>
       p.id.toLowerCase().includes(q) ||
       p.name.toLowerCase().includes(q)
     );
-  }, [searchTerm]);
+  },[searchTerm]);
 
-  /* ---------- CALCULATIONS ---------- */
-  const results = useMemo(() => {
-    if (!selectedItem) return null;
+  const results = useMemo(()=>{
+    if(!selectedItem) return null;
 
     const mrp = selectedItem.price;
     const cost = selectedItem.cost;
+    const margin = Number(marginRate) || 0;
 
     let netSelling;
     let exVat;
 
-    if (mode === "rate") {
-      if (vatType === "vat") {
-        exVat = mrp / (1 + VAT_RATE / 100);
-        netSelling = exVat * (1 - (Number(marginRate) || 0) / 100);
+    if(mode==="rate"){
+      if(vatType==="vat"){
+        exVat = mrp / (1 + VAT_RATE/100);
+        netSelling = exVat * (1 - margin/100);
       } else {
-        netSelling = mrp * (1 - (Number(marginRate) || 0) / 100);
-        exVat = netSelling * (100 / 118);
+        netSelling = mrp * (1 - margin/100);
+        exVat = netSelling * (100 / (100 + VAT_RATE));
       }
     } else {
       netSelling = Number(targetNet) || 0;
-      exVat = vatType === "vat"
+      exVat = vatType==="vat"
         ? netSelling
-        : netSelling * (100 / 118);
+        : netSelling * (100 / (100 + VAT_RATE));
     }
-
-    const vatPayable =
-      vatType === "nonvat"
-        ? netSelling * (18 / 118)
-        : 0;
-
-    const netCost =
-      vatType === "nonvat"
-        ? cost + vatPayable
-        : cost;
-
-    const netMargin = netSelling - netCost;
-    const netMarginRate = netSelling > 0 ? (netMargin / netSelling) * 100 : 0;
 
     const discount = ((mrp - netSelling) / mrp) * 100;
 
-    return {
-      mrp,
-      netSelling,
-      exVat,
-      vatPayable,
-      netCost,
-      netMargin,
-      netMarginRate,
-      discount
-    };
-  }, [selectedItem, vatType, mode, marginRate, targetNet]);
+    let netMargin;
+    let netMarginRate;
 
-  /* ---------- UI ---------- */
+    if(vatType==="nonvat"){
+      // LOCKED NON-VAT LOGIC
+      netMargin = exVat - cost;
+      netMarginRate = exVat > 0 ? (netMargin / exVat) * 100 : 0;
+    } else {
+      netMargin = netSelling - cost;
+      netMarginRate = netSelling > 0 ? (netMargin / netSelling) * 100 : 0;
+    }
+
+    return { mrp, netSelling, exVat, discount, netMargin, netMarginRate, cost };
+  },[selectedItem,vatType,mode,marginRate,targetNet]);
+
   return (
     <div className="max-w-xl mx-auto p-4">
 
-      <h1 className="text-xl font-bold mb-4">
-        Management Pricing Calculator
-      </h1>
+      <h1 className="text-xl font-bold mb-4">Management Pricing Calculator</h1>
 
       <input
         className="w-full p-3 border rounded mb-2"
         placeholder="Search item code or name"
         value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
+        onChange={e=>setSearchTerm(e.target.value)}
       />
 
-      {filtered.length > 0 && (
-        <div className="border rounded max-h-56 overflow-y-auto custom-scrollbar mb-4">
-          {filtered.map(p => (
-            <div
-              key={p.id}
+      {filtered.length>0 && (
+        <div className="border rounded max-h-56 overflow-y-auto mb-4 custom-scrollbar">
+          {filtered.map(p=>(
+            <div key={p.id}
               className="p-3 hover:bg-blue-50 cursor-pointer flex justify-between"
-              onClick={() => {
-                setSelectedItem(p);
-                setSearchTerm("");
-              }}
+              onClick={()=>{ setSelectedItem(p); setSearchTerm(""); }}
             >
               <div>
                 <div className="font-bold">{p.name}</div>
@@ -375,29 +347,29 @@ function App() {
           onClick={()=>setMode("amount")}>Target Price</button>
       </div>
 
-      {mode === "rate" ? (
+      {mode==="rate" ? (
         <input className="w-full p-3 border rounded mb-3"
           placeholder="Margin %"
           value={marginRate}
-          onChange={e=>setMarginRate(e.target.value)} />
+          onChange={e=>setMarginRate(e.target.value)}
+        />
       ) : (
         <input className="w-full p-3 border rounded mb-3"
           placeholder="Target Net Selling Price"
           value={targetNet}
-          onChange={e=>setTargetNet(e.target.value)} />
+          onChange={e=>setTargetNet(e.target.value)}
+        />
       )}
 
       {results && (
         <>
           <div className="bg-blue-900 text-white p-4 rounded mb-4">
-            <div className="mb-2 text-sm text-blue-200">
+            <div className="text-sm text-blue-200 mb-2">
               {selectedItem.id} – {selectedItem.name} ({selectedItem.brand})
             </div>
-
             <div className="text-3xl font-bold mb-2">
               NET SELLING PRICE: LKR {results.netSelling.toFixed(2)}
             </div>
-
             <div className="text-sm">MRP: {results.mrp.toFixed(2)}</div>
             <div className="text-sm">EX VAT: {results.exVat.toFixed(2)}</div>
             <div className="text-sm text-red-300">
@@ -407,21 +379,9 @@ function App() {
 
           <div className="bg-gray-900 text-white p-4 rounded">
             <h3 className="font-bold mb-2">Management Metrics</h3>
-            <div className="text-sm">COST: {selectedItem.cost.toFixed(2)}</div>
-            {vatType==="nonvat" && (
-              <div className="text-sm">
-                VAT PAYABLE (by us): {results.vatPayable.toFixed(2)}
-              </div>
-            )}
-            <div className="text-sm">
-              NET COST: {results.netCost.toFixed(2)}
-            </div>
-            <div className="text-sm">
-              NET MARGIN VALUE: {results.netMargin.toFixed(2)}
-            </div>
-            <div className="text-sm">
-              NET MARGIN RATE: {results.netMarginRate.toFixed(2)}%
-            </div>
+            <div className="text-sm">COST: LKR {results.cost.toFixed(2)}</div>
+            <div className="text-sm">NET MARGIN VALUE: {results.netMargin.toFixed(2)}</div>
+            <div className="text-sm">NET MARGIN RATE: {results.netMarginRate.toFixed(2)}%</div>
           </div>
         </>
       )}
